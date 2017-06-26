@@ -10,7 +10,7 @@ model.add(Dense(25,activation ='relu'))
 model.add(Dense(20,activation = 'relu'))
 model.add(Dense(1,activation = 'sigmoid'))
 
-model.load_weights("ASE_weights.h5")
+model.load_weights("SAE_weights.h5")
 
 def plot_roc(df, y_true, label):
 
@@ -51,14 +51,14 @@ def plot_roc(df, y_true, label):
     plt.show()
 
 fname = "/Users/bindy/Dropbox/missense_pred/data/john/HIS_metaSVM_addtest2.anno.rare.reformat.csv"
-fname2 = "/Users/bindy/Dropbox/missense_pred/data/cancer_hotspots/hotspot.anno.rare.reformat.csv"
-data = data_import.import_data(fname)
-data2 = data_import.import_data(fname2)
+fname2 = "/Users/bindy/Dropbox/missense_pred/data/cancer_hotspots/cancer.HS2.reformat.cnn.csv"
+data = data_import.import_data(fname2)
+data2 = data_import.import_data(fname)
 X_train = data[0]['X_train']
 X_test = data[0]['X_test']
 y_train = data[1]['y_train']
 y_test = data[1]['y_test']
-df = pd.read_csv(fname)
+df = pd.read_csv(fname2)
 y_true = df.pop('target')
 y_score = model.predict_proba(X_test,batch_size = 20, verbose = 1)
 df = df.assign(SAE_prob = y_score)
