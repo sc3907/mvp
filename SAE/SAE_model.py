@@ -3,7 +3,7 @@ from keras.models import Model, Sequential
 import data_import
 import pickle as pkl
 import json
-data = data_import.import_data("~/Dropbox/missense_pred/data/john/HIS_input_data.csv",test = 1)
+data = data_import.import_data("~/Dropbox/missense_pred/data/john/HS_input_data.csv",test = 1)
 
 
 X_train = data[0]['X_train']
@@ -76,9 +76,9 @@ mlp.compile(loss = 'binary_crossentropy',
 
 mlp.fit(X_train,y_train,epochs = 100,batch_size = 200)
 SAE_struct = mlp.to_json()
-with open("ASE_arc.txt",'w') as f:
+with open("SAE_arc.txt",'w') as f:
     json.dump(SAE_struct,f)
-mlp.save_weights('ASE_weights.h5')
+mlp.save_weights('SAE_weights.h5')
 
 #building the autoencoder
 '''

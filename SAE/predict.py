@@ -50,15 +50,15 @@ def plot_roc(df, y_true, label):
     plt.legend(loc="lower right", fontsize = 'medium')
     plt.show()
 
-fname = "/Users/bindy/Dropbox/missense_pred/data/john/HIS_metaSVM_addtest2.anno.rare.reformat.csv"
+fname = "/Users/bindy/Dropbox/missense_pred/data/john/HS_metaSVM_addtest2.anno.rare.reformat.csv"
 fname2 = "/Users/bindy/Dropbox/missense_pred/data/cancer_hotspots/cancer.HS2.reformat.cnn.csv"
-data = data_import.import_data(fname2)
+data = data_import.import_data(fname)
 data2 = data_import.import_data(fname)
 X_train = data[0]['X_train']
 X_test = data[0]['X_test']
 y_train = data[1]['y_train']
 y_test = data[1]['y_test']
-df = pd.read_csv(fname2)
+df = pd.read_csv(fname)
 y_true = df.pop('target')
 y_score = model.predict_proba(X_test,batch_size = 20, verbose = 1)
 df = df.assign(SAE_prob = y_score)
