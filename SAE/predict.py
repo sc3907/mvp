@@ -5,7 +5,7 @@ import matplotlib.pyplot as plt
 from sklearn import metrics
 import pandas as pd
 model = Sequential()
-model.add(Dense(30,input_shape = (40,),activation = 'relu'))
+model.add(Dense(30,input_shape = (39,),activation = 'relu'))
 model.add(Dense(25,activation ='relu'))
 model.add(Dense(20,activation = 'relu'))
 model.add(Dense(1,activation = 'sigmoid'))
@@ -50,7 +50,7 @@ def plot_roc(df, y_true, label):
     plt.legend(loc="lower right", fontsize = 'medium')
     plt.show()
 
-fname = "/Users/bindy/Dropbox/missense_pred/data/john/HS_metaSVM_addtest2.anno.rare.reformat.csv"
+fname = "/Users/bindy/Dropbox/missense_pred/data/john/HIS_metaSVM_addtest2.anno.rare.reformat.csv"
 fname2 = "/Users/bindy/Dropbox/missense_pred/data/cancer_hotspots/cancer.HS2.reformat.cnn.csv"
 data = data_import.import_data(fname)
 data2 = data_import.import_data(fname)

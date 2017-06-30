@@ -3,7 +3,7 @@ from keras.models import Model, Sequential
 import data_import
 import pickle as pkl
 import json
-data = data_import.import_data("~/Dropbox/missense_pred/data/john/HS_input_data.csv",test = 1)
+data = data_import.import_data("~/Dropbox/missense_pred/data/john/HIS_input_data.csv",test = 1)
 
 
 X_train = data[0]['X_train']
@@ -12,8 +12,8 @@ y_train = data[1]['y_train']
 y_test = data[1]['y_test']
 
 Model1 = Sequential()
-Model1.add(Dense(30,input_shape = (40,),activation = 'relu',name = 'inter1'))
-Model1.add(Dense(40,activation = 'relu'))
+Model1.add(Dense(30,input_shape = (39,),activation = 'relu',name = 'inter1'))
+Model1.add(Dense(39,activation = 'relu'))
 
 Model1.compile(optimizer = 'adam',loss = 'mean_squared_error')
 Model1.fit(X_train,X_train,epochs = 100,batch_size = 1000,validation_data = (X_test,X_test))
@@ -66,7 +66,7 @@ def my_init3(shape,dtype = None):
 
 
 mlp = Sequential()
-mlp.add(Dense(30,input_shape = (40,),activation = 'relu',kernel_initializer = my_init1))
+mlp.add(Dense(30,input_shape = (39,),activation = 'relu',kernel_initializer = my_init1))
 mlp.add(Dense(25,activation ='relu',kernel_initializer = my_init2))
 mlp.add(Dense(20,activation = 'relu',kernel_initializer = my_init3))
 mlp.add(Dense(1,activation = 'sigmoid'))

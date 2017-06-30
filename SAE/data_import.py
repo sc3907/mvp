@@ -20,7 +20,7 @@ def import_data(path,test_rate = 0.2,test = 0):
                               's_het', 'xs_het_log', 'xgc_content',
                               'xFATHMM_converted_rankscore', 'xfathmm-MKL_coding_rankscore',
                               'xpreppi_counts', 'xubiquitination','gc_content','BioPlex','Unnamed: 0'
-                              ,'gnomad'}
+                              ,'gnomad','s_hat'}
 
     X = pd.read_csv(path)
 

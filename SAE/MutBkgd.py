@@ -2,8 +2,8 @@ import sys
 DROPBOX = '~/Dropbox/'
 sys.path.append(DROPBOX + 'analysis/info/')
 sys.path.append(DROPBOX + 'analysis/utils/')
-from info import *
-from utils import *
+#from info import *
+#from utils import *
 
 
 class MutationBackground(object):
