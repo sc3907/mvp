@@ -12,8 +12,8 @@ y_train = data[1]['y_train']
 y_test = data[1]['y_test']
 
 Model1 = Sequential()
-Model1.add(Dense(30,input_shape = (40,),activation = 'relu',name = 'inter1'))
-Model1.add(Dense(40,activation = 'relu'))
+Model1.add(Dense(30,input_shape = (39,),activation = 'relu',name = 'inter1'))
+Model1.add(Dense(39,activation = 'relu'))
 
 Model1.compile(optimizer = 'adam',loss = 'mean_squared_error')
 Model1.fit(X_train,X_train,epochs = 100,batch_size = 1000,validation_data = (X_test,X_test))
@@ -66,7 +66,7 @@ def my_init3(shape,dtype = None):
 
 
 mlp = Sequential()
-mlp.add(Dense(30,input_shape = (40,),activation = 'relu',kernel_initializer = my_init1))
+mlp.add(Dense(30,input_shape = (39,),activation = 'relu',kernel_initializer = my_init1))
 mlp.add(Dense(25,activation ='relu',kernel_initializer = my_init2))
 mlp.add(Dense(20,activation = 'relu',kernel_initializer = my_init3))
 mlp.add(Dense(1,activation = 'sigmoid'))
@@ -76,9 +76,9 @@ mlp.compile(loss = 'binary_crossentropy',
 
 mlp.fit(X_train,y_train,epochs = 100,batch_size = 200)
 SAE_struct = mlp.to_json()
-with open("ASE_arc.txt",'w') as f:
+with open("SAE_arc.txt",'w') as f:
     json.dump(SAE_struct,f)
-mlp.save_weights('ASE_weights.h5')
+mlp.save_weights('SAE_weights.h5')
 
 #building the autoencoder
 '''
