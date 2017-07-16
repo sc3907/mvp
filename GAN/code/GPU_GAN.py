@@ -22,17 +22,17 @@ def generator_model(input_shape, output_shape, weights_path=None):
     nb_filters = 32
     pool_size = (2, 1)
     kernel_size = (3, 1)
-    
+    #
     input_layer = Input(shape=input_shape)
-    x = Convolution2D(nb_filters, kernel_size[0], kernel_size[1], border_mode="same", activation="relu")(input_layer)
-    for i in range(2):
-        y = Convolution2D(nb_filters, kernel_size[0], kernel_size[1], border_mode="same", activation="relu")(x)
-        y = Convolution2D(nb_filters, kernel_size[0], kernel_size[1], border_mode="same")(y)
-        x = merge([x, y], mode="sum")
-        x = Activation("relu")(x)
-        x = MaxPooling2D(pool_size=pool_size)(x)
-
-    f = Flatten(input_shape=input_shape)(x)
+    #x = Convolution2D(nb_filters, kernel_size[0], kernel_size[1], border_mode="same", activation="relu",dim_ordering="tf")(input_layer)
+    #for i in range(2):
+    #    y = Convolution2D(nb_filters, kernel_size[0], kernel_size[1], border_mode="same", activation="relu")(x)
+    #    y = Convolution2D(nb_filters, kernel_size[0], kernel_size[1], border_mode="same")(y)
+    #    x = merge([x, y], mode="sum")
+    #    x = Activation("relu")(x)
+    #    x = MaxPooling2D(pool_size=pool_size)(x)
+    #
+    f = Flatten()(input_layer)
     d1 = Dense(100,input_shape=input_shape,activation='relu')(f)
     drop1 = Dropout(0.05)(d1)
     d2 = Dense(100,activation='relu')(drop1)
@@ -164,30 +164,19 @@ def training(argv):
     for train, test in kfold.split(X_labeled,Y_categ_labeled[:,0]):
         #print("num of train ex: %d" % nb_train_example)
         print("split: %d"%split)    
-        #model = cnn_model(input_shape)
         g_input_length=50
         G = generator_model((g_input_length,1,1),input_shape)
-        #if first:
-        #    plot(G, show_shapes=True,to_file='../models/GAN_generator.png')
         D = discriminator_model(input_shape)
-        #if first:
-        #    plot(D, show_shapes=True,to_file='../models/GAN_discriminator.png')
 
         D_two_class = Sequential()
         D_two_class.add(D)
         def output_real(x):
-            #y=list(range(K.shape(x)[0]))
-            #for i,x_i in enumerate(x):
-            #   y[i]=1-x_i[2]
-            #return y
-
-            #return [1-x_i[2] for x_i in x]
             #return 2*K.sum(x[:,0:2],axis=1,keepdims=True)-1
             return K.sum(x[:,0:2],axis=1,keepdims=True)
         D_two_class.add(Lambda(output_real))
         def wasserstein_loss(y_true,y_pred):
             return K.mean(y_true*y_pred)
-        D_two_class.compile(loss=wasserstein_loss,
+        D_two_class.compile(loss=binary_cross_entropy,
                       optimizer='adam',
                       metrics=['accuracy'])
 
@@ -195,17 +184,6 @@ def training(argv):
         GD.add(G)
         D.trainable = False
         GD.add(D_two_class)
-        #GD.compile(loss='categorical_crossentropy',
-        #              optimizer='adam',
-        #              metrics=['accuracy'])
-            
-        #GD.compile(loss=neg_loss_unlabeled,
-        #              optimizer='adam',
-        #              metrics=['accuracy'])
-        #use with regular D
-        
-        def neg_wasserstein_loss(y_true,y_pred):
-            return -K.mean(y_true*y_pred)
         def neg_binary_cross_entropy(y_true,y_pred):
             return -K.binary_crossentropy(y_true, y_pred)
         GD.compile(loss=neg_binary_cross_entropy,
@@ -213,14 +191,6 @@ def training(argv):
                       metrics=['accuracy'])
         #use with regular D_two_class
 
-        """if first:
-            plot(GD, show_shapes=True,to_file='../models/GAN_linked.png')
-            GD.summary()
-            for layer in D.layers:                    
-                layer.trainable = False
-            GD.summary()
-            first = False
-        """
         X_train = X_labeled[train]
         X_train_labeled = X_labeled[train]
         X_train = np.vstack((X_train,X_unlabeled))
@@ -246,7 +216,6 @@ def training(argv):
         for epoch in range(nb_epoch):
             a1,a2,a3,l3 = ([],[],[],[])
             shuffled = np.random.permutation([i for i in range(X_train_labeled.shape[0])])
-            #shuffled = np.random.permutation([i for i in range(X_train_labeled.shape[0])])
             nb_batches = int(np.ceil(X_train_labeled.shape[0]/batch_size))
             shuffled_bigset = np.random.permutation([i for i in range(X_train.shape[0])])
             batch_size_bigset = X_train.shape[0]/nb_batches
@@ -350,6 +319,7 @@ def training(argv):
         if scores[1] > best_acc:
             D.save_weights(best_weights_filepath, overwrite=True)
         G.save_weights("Generator_weights_"+str(split)+".hdf5", overwrite=True)
+        D.save_weights("Discriminator_weights_"+str(split)+".hdf5", overwrite=True)
         split += 1
 
     print("%.2f%% (+/- %.2f%%)" % (np.mean(cvscores), np.std(cvscores)))
@@ -437,10 +407,29 @@ def predict_to_file(weights_file,test_file,outfile):
     input_data['GAN_prob'] = pd.Series(predictions)
     input_data.to_csv(outfile,sep=",")
     
+def view_gen_out(weights_file,test_file,outfile):
+    nb_feats=38
+    X = pd.read_csv(test_file,index_col=0)
+    X = X.values
+    input_shape = (X.shape[1], 1, 1)
+    X = X.reshape(X.shape[0], X.shape[1], 1, 1)
+    G = generator_model(input_shape,(nb_feats,1,1),weights_path=weights_file)
+    predictions = G.predict(X)
+    predictions = predictions.reshape(X.shape[0],nb_feats)
+    X = X.reshape(X.shape[0],X.shape[1])
+    out = np.hstack((X,predictions))
+    print X.shape
+    print predictions.shape
+    print out.shape
+    out_table = pd.DataFrame(out)
+    out_table.to_csv(outfile,sep=",")
+
 if __name__=="__main__":
     if sys.argv[1] == "training":
         training(sys.argv[0:])
-    elif sys.argv[1] == "test":
+    elif sys.argv[1] == "test_on_file":
         test_on_file(sys.argv[2],sys.argv[3],verbose=True)
     elif sys.argv[1] == "predict_to_file":
         predict_to_file(sys.argv[2],sys.argv[3],sys.argv[4])
+    elif sys.argv[1] == "view_gen_out":
+        view_gen_out(sys.argv[2],sys.argv[3],sys.argv[4])
