@@ -3,8 +3,10 @@ from keras.models import Model, Sequential
 import data_import
 import pickle as pkl
 import json
-data = data_import.import_data("~/Dropbox/missense_pred/data/john/HIS_input_data.csv",test = 1)
 
+#data = data_import.import_data("~/Dropbox/missense_pred/data/Ben/inputs/input_data.HIS.csv",test = 1)
+
+data = data_import.import_data("~/Dropbox/missense_pred/data/john/HS_input_data.csv",test = 1)
 
 X_train = data[0]['X_train']
 X_test = data[0]['X_test']
@@ -73,6 +75,13 @@ mlp.add(Dense(1,activation = 'sigmoid'))
 mlp.compile(loss = 'binary_crossentropy',
 		optimizer = 'adam',
 		metrics = ['accuracy'])
+'''
+data = data_import.import_data("~/Dropbox/missense_pred/data/john/HIS_metaSVM_addtest1.anno.rare.reformat.csv",test = 1)
+X_train = data[0]['X_train']
+X_test = data[0]['X_test']
+y_train = data[1]['y_train']
+y_test = data[1]['y_test']
+'''
 
 mlp.fit(X_train,y_train,epochs = 100,batch_size = 200)
 SAE_struct = mlp.to_json()

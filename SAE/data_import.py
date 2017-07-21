@@ -20,7 +20,7 @@ def import_data(path,test_rate = 0.2,test = 0):
                               's_het', 'xs_het_log', 'xgc_content',
                               'xFATHMM_converted_rankscore', 'xfathmm-MKL_coding_rankscore',
                               'xpreppi_counts', 'xubiquitination','gc_content','BioPlex','Unnamed: 0'
-                              ,'gnomad','s_hat'}
+                              ,'gnomad','s_hat','REVEL','RVIS','mis_badness','obs_exp','MPC','cnn_prob'}
 
     X = pd.read_csv(path)
 
@@ -30,6 +30,7 @@ def import_data(path,test_rate = 0.2,test = 0):
     X = X.drop("target",1)
     X = X[X.columns.difference(exclude_cols)]
     print(list(X))
+    #print(X['MPC'])
     X = X.values
     y = y.values
     if test == 1:

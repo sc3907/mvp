@@ -36,7 +36,8 @@ model.add(Dense(1,activation = 'sigmoid'))
 model.load_weights("SAE_weights.h5")
 
 # ASD case
-fpath = "~/Dropbox/missense_pred/data/john/HIS_case.anno.rare.reformat.csv"
+fpath = "~/Dropbox/missense_pred/data/Ben/ASDonly.case.anno.rare.HS.reformat.GCcorrected.cnn.csv"
+#fpath = '~/Dropbox/missense_pred/data/john/HIS_case.anno.rare.reformat.csv'
 data = data_import.import_data(fpath)
 X_train = data[0]['X_train']
 X_test = data[0]['X_test']
@@ -49,7 +50,7 @@ CASE = df.assign(SAE_prob = y_score)
 
 
 #CHD case
-fpath = "~/Dropbox/missense_pred/data/case_control/chd_yale.anno.rare.HS.reformat.csv"
+fpath = "~/Dropbox/missense_pred/data/Ben/chd_yale.anno.rare.HS.reformat.GCcorrected.cnn.csv"
 data = data_import.import_data(fpath)
 X_train = data[0]['X_train']
 X_test = data[0]['X_test']
@@ -63,7 +64,7 @@ CHD = df.assign(SAE_prob = y_score)
 
 #ssc_yale case
 
-fpath = "~/Dropbox/missense_pred/data/case_control/ssc_yale.anno.rare.HS.reformat.csv"
+fpath = "~/Dropbox/missense_pred/data/Ben/ssc_yale.anno.rare.HS.reformat.GCcorrected.cnn.csv"
 data = data_import.import_data(fpath)
 X_train = data[0]['X_train']
 X_test = data[0]['X_test']
@@ -74,8 +75,22 @@ y_true = df.pop('target')
 y_score = model.predict_proba(X_test,batch_size = 20, verbose = 1)
 ssc_yale = df.assign(SAE_prob = y_score)
 
+#DDD df
+fpath = "~/Dropbox/missense_pred/data/Ben/DDD_new_0.2.anno.rare.HS.reformat.GCcorrected.cnn.csv"
+data = data_import.import_data(fpath)
+X_train = data[0]['X_train']
+X_test = data[0]['X_test']
+y_train = data[1]['y_train']
+y_test = data[1]['y_test']
+df = pd.read_csv(fpath)
+y_true = df.pop('target')
+y_score = model.predict_proba(X_test,batch_size = 20, verbose = 1)
+df= df.assign(disease = 'DDD_new')
+DDD = df.assign(SAE_prob = y_score)
+
+
 #control df
-fpath = "~/Dropbox/missense_pred/data/john/HIS_control_1911.anno.rare.reformat.csv"
+fpath = "~/Dropbox/missense_pred/data/Ben/control_1911.anno.rare.HS.reformat.GCcorrected.cnn.csv"
 data = data_import.import_data(fpath)
 X_train = data[0]['X_train']
 X_test = data[0]['X_test']
@@ -116,12 +131,14 @@ def display_enrichment(case_info, control_info, case_disease, geneset, sort_key=
               'SAE_0.3':('SAE_prob', 0.3), 'SAE_0.4':('SAE_prob', 0.4),
               'SAE_0.5':('SAE_prob', 0.5), 'SAE_0.6':('SAE_prob', 0.6),
               'SAE_0.7':('SAE_prob', 0.7), 'SAE_0.8':('SAE_prob', 0.8),
-              'SAE_best_0.56':('SAE_prob', 0.56)}
+              'SAE_best_0.56':('SAE_prob', 0.56),'REVEL_0.5':('REVEL',0.5),
+              'REVEL_0.6':('REVEL',0.6),'REVEL_0.7':('REVEL',0.7),'REVEL_0.8':('REVEL',0.8),
+              'REVEL_0.9':('REVEL',0.9),'MPC_1':('MPC',1),'MPC_2':('MPC',2)}
 
 
     infos = []
     for col_name, (col, threshold) in col_dict.items():
-        print(df_case)
+        #print(df_case)
         #print(convert2binary(df_case,col,threshold))
         #case_count = np.sum(convert2binary(df_case, col, threshold))
         #control_count = np.sum(convert2binary(df_control, col, threshold))
@@ -204,20 +221,26 @@ case_info = (df_case, case_disease, disease_size)
 df = display_enrichment(case_info, control_info, case_disease, geneset)
 
 #plot CHD_yale
-case_disease = ['CHD']
-df_case = CASE
+case_disease = ['CHD_yale']
+df_case = CHD
 index =  df_case['disease'].isin(case_disease)
 df_case = df_case[index]
 case_info = (df_case, case_disease, disease_size)
 df = display_enrichment(case_info, control_info, case_disease, geneset)
 
 #plot SSC_yale
-case_disease = ['DDD']
-df_case = CASE
+case_disease = ['SSC_yale']
+df_case = ssc_yale
 index =  df_case['disease'].isin(case_disease)
 df_case = df_case[index]
 case_info = (df_case, case_disease, disease_size)
 df = display_enrichment(case_info, control_info, case_disease, geneset)
 
-
+#plot DDD
+case_disease = ['DDD_new']
+df_case = DDD
+index = df_case['disease'].isin(case_disease)
+df_case = df_case[index]
+case_info = (df_case,case_disease, disease_size)
+df = display_enrichment(case_info,control_info,case_disease, geneset)
 
