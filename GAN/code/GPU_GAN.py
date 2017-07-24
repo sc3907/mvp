@@ -109,41 +109,20 @@ def load_data(fname='../data/HS_input_data.csv'):
     print 'cols used:', cols
     print '{} cols used'.format(len(cols))
     X = df[cols]
-    return X.values, y
-
-def training(argv):
-    print("num args: {}".format(len(argv)))
-    print("argv[0]: {}".format(argv[0]))
-    print("argv[1]: {}".format(argv[1]))
-    min_val_loss = sys.float_info.max
-    nb_epoch = 30
-    batch_size = 256
-    best_weights_filepath = "GAN_acceptsunlabeled_best_cross_val.hdf5"
-
-    kfold = StratifiedKFold(n_splits=10, shuffle=True, random_state=seed)
-    cvscores = []
-
-    print('Loading training data...')
-    X, Y = load_data("../data/HS_input_data.csv") 
-    input_shape = (X.shape[1], 1, 1)
-    # convert into 4D tensor For 2D data (e.g. image), "tf" assumes (rows, cols, channels) 
-    X = X.reshape(X.shape[0], X.shape[1], 1, 1)
-    print('X shape:', X.shape)
-    print('Y shape:', Y.shape)
-
-    nb_example = X.shape[0]
-    nb_features = X.shape[1]
+    
+    X_arr = np.array(X)
+    X = X_arr.reshape(X_arr.shape[0], X_arr.shape[1], 1, 1)
     X_labeled = []
     X_unlabeled = []
     Y_categ_labeled = []
     Y_categ_unlabeled = []
     nb_labeled,nb_unlabeled = 0,0
-    for i in range(nb_example):
-        if Y[i]>0.5:
+    for i in range(X.shape[0]):
+        if y[i]>0.5:
             X_labeled.append(X[i])
             Y_categ_labeled.append([0.0,1.0,0.0])
             nb_labeled += 1
-        elif Y[i]<=0.5 and Y[i]>=0:
+        elif y[i]<=0.5 and y[i]>=0:
             X_labeled.append(X[i])
             Y_categ_labeled.append([1.0,0.0,0.0])
             nb_labeled += 1
@@ -153,19 +132,40 @@ def training(argv):
             nb_unlabeled += 1
     X_labeled = np.array(X_labeled).reshape(nb_labeled,X.shape[1], 1, 1)
     X_unlabeled = np.array(X_unlabeled).reshape(nb_unlabeled,X.shape[1], 1, 1)
-    Y_categ_labeled=np.array(Y_categ_labeled).reshape(nb_labeled,3)
-    Y_categ_unlabeled=np.array(Y_categ_unlabeled).reshape(nb_unlabeled,3)
+    Y_categ_labeled = np.array(Y_categ_labeled).reshape(nb_labeled,3)
+    Y_categ_unlabeled = np.array(Y_categ_unlabeled).reshape(nb_unlabeled,3)
+
+    return X, y, X_labeled, Y_categ_labeled, X_unlabeled, Y_categ_unlabeled
+
+def training(argv):
+    print("num args: {}".format(len(argv)))
+    print("argv[0]: {}".format(argv[0]))
+    print("argv[1]: {}".format(argv[1]))
+    min_val_loss = sys.float_info.max
+    nb_epoch = 30
+    batch_size = 30000 #at 38000 fails at 35000 still ok
+    best_weights_filepath = "GAN_acceptsunlabeled_best_cross_val.hdf5"
+
+    kfold = StratifiedKFold(n_splits=10, shuffle=True, random_state=seed)
+    cvscores = []
+
+    print('Loading training data...')
+    X, Y, X_labeled, Y_categ_labeled, X_unlabeled, Y_categ_unlabeled = load_data("../data/HS_input_data.csv") 
+    input_shape = (X.shape[1], 1, 1)
+    print('X shape:', X.shape)
+    print('Y shape:', Y.shape)
+    print('X_labeled shape:', X_labeled.shape)
+    print('Y_categ_labeled.shape:', Y_categ_labeled.shape)
 
     split = 1
-    best_acc = 0
+    best_acc_d = 0
+    best_acc_g = 0
     first = True
-    print X_labeled.shape
-    print Y_categ_labeled.shape
     for train, test in kfold.split(X_labeled,Y_categ_labeled[:,0]):
         #print("num of train ex: %d" % nb_train_example)
         print("split: %d"%split)    
         g_input_length=50
-        G = generator_model((g_input_length,1,1),input_shape)
+        G = generator_model((g_input_length,1,1),input_shape,weights_path="best_generator_weights_inputsize_50_vanillaGAN.hdf5")
         D = discriminator_model(input_shape)
 
         D_two_class = Sequential()
@@ -176,7 +176,7 @@ def training(argv):
         D_two_class.add(Lambda(output_real))
         def wasserstein_loss(y_true,y_pred):
             return K.mean(y_true*y_pred)
-        D_two_class.compile(loss=binary_cross_entropy,
+        D_two_class.compile(loss='binary_crossentropy',
                       optimizer='adam',
                       metrics=['accuracy'])
 
@@ -220,13 +220,10 @@ def training(argv):
             shuffled_bigset = np.random.permutation([i for i in range(X_train.shape[0])])
             batch_size_bigset = X_train.shape[0]/nb_batches
             for batch in range(nb_batches):
-                #if batch % 10 == 0:
-                #    print("%d / %d" % (batch,nb_batches))
                 D.trainable = True
                 for layer in D.layers:
                     layer.trainable=True
-                #loss1,acc1 = D.train_on_batch(X_train[shuffled[batch*batch_size:(batch+1)*batch_size]],relabeled_Y[shuffled[batch*batch_size:(batch+1)*batch_size]])
-                loss1,acc1 = D.train_on_batch(X_train_labeled[shuffled[batch*batch_size:(batch+1)*batch_size]],Y_train_labeled[shuffled[batch*batch_size:(batch+1)*batch_size]])
+                loss1,acc1 = D.train_on_batch(X_train_labeled[shuffled[batch*batch_size:(batch+1)*batch_size]],relabeled_Y[shuffled[batch*batch_size:(batch+1)*batch_size]])
                 loss1,acc1 = D_two_class.train_on_batch(X_train[shuffled_bigset[batch*batch_size_bigset:(batch+1)*batch_size_bigset]],[[1]]*batch_size_bigset)
                 noise = np.random.normal(0,1,(batch_size,g_input_length,1,1))
                 generated = G.predict(noise)
@@ -316,10 +313,13 @@ def training(argv):
         scores = D.evaluate(X_labeled[test], Y_categ_labeled[test], verbose=1)
         print("%s: %.2f%%" % (D.metrics_names[1], scores[1]*100))
         cvscores.append(scores[1] * 100)
-        if scores[1] > best_acc:
+        if scores[1] > best_acc_d:
             D.save_weights(best_weights_filepath, overwrite=True)
-        G.save_weights("Generator_weights_"+str(split)+".hdf5", overwrite=True)
-        D.save_weights("Discriminator_weights_"+str(split)+".hdf5", overwrite=True)
+        scores = GD.evaluate(np.random.normal(0,1,(4096,g_input_length,1,1)), [[1]]*4096, verbose=1)
+        if scores[1] > best_acc_g:
+            G.save_weights("best_generator_weights_inputsize_"+str(g_input_length)+".hdf5", overwrite=True)        
+        G.save_weights("Generator_weights_"+str(split)+"_classGAN.hdf5", overwrite=True)
+        D.save_weights("Discriminator_weights_"+str(split)+"_classGAN.hdf5", overwrite=True)
         split += 1
 
     print("%.2f%% (+/- %.2f%%)" % (np.mean(cvscores), np.std(cvscores)))
@@ -333,10 +333,8 @@ def test_on_file(weights_file,test_file,threshold=0.5,verbose=False):
     X = X.reshape(X.shape[0], X.shape[1], 1, 1)
     #print('X shape:', X.shape)
 
-    nb_example = X.shape[0]
-    nb_features = X.shape[1]
     Y_categ = []
-    for i in range(nb_example):
+    for i in range(X.shape[0]):
         if Y[i]>0.5:
             Y_categ.append([0.0,1.0,0.0])
         else:
@@ -352,16 +350,7 @@ def test_on_file(weights_file,test_file,threshold=0.5,verbose=False):
     predictions = predictions[:,0:2] / np.sum(predictions[:,0:2],axis=1).reshape(-1,1)    
     #print(predictions)
     true_pos,false_pos,true_neg,false_neg = (0,0,0,0)
-    for i in range(nb_example):
-        """if np.isclose(Y[i],1) and predictions[i][1]>0.5:
-            true_pos += 1
-        elif np.isclose(Y[i],0) and predictions[i][1]>0.5:
-            false_pos += 1
-        elif np.isclose(Y[i],0) and predictions[i][0]>0.5:
-            true_neg += 1
-        elif np.isclose(Y[i],1) and predictions[i][0]>0.5:
-            false_neg += 1"""
-
+    for i in range(X.shape[0]):
         if np.isclose(Y[i],1) and predictions[i][1]>threshold:
             true_pos += 1
         elif np.isclose(Y[i],0) and predictions[i][1]>threshold:
@@ -371,14 +360,14 @@ def test_on_file(weights_file,test_file,threshold=0.5,verbose=False):
         elif np.isclose(Y[i],1) and predictions[i][0]>1-threshold:
             false_neg += 1
     if verbose:
-        print("nb_example: {}".format(nb_example))
+        print("nb_example: {}".format(X.shape[0]))
         print([[true_neg,false_pos],[false_neg,true_pos]])
         print("row 1 neg_act row 2 pos_act")
         print("col 1 neg_pred col 2 pos_pred")
     reread = pd.read_csv(test_file)    
     nb_patients = len(set(reread['INFO'].values))
     return {'true_neg':true_neg,'false_pos':false_pos,'false_neg':false_neg,
-            'true_pos':true_pos,'total':nb_example,'nb_patients':nb_patients}
+            'true_pos':true_pos,'total':X.shape[0],'nb_patients':nb_patients}
 
 def predict_to_file(weights_file,test_file,outfile):
     #print(weights_file)
@@ -389,10 +378,8 @@ def predict_to_file(weights_file,test_file,outfile):
     X = X.reshape(X.shape[0], X.shape[1], 1, 1)
     #print('X shape:', X.shape)
 
-    nb_example = X.shape[0]
-    nb_features = X.shape[1]
     Y_categ = []
-    for i in range(nb_example):
+    for i in range(X.shape[0]):
         if Y[i]>0.5:
             Y_categ.append([0.0,1.0,0.0])
         else:

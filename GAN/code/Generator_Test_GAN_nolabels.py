@@ -45,7 +45,75 @@ def generator_model(input_shape, output_shape, weights_path=None):
         model.load_weights(weights_path)
     return model
 
-def discriminator_model(input_shape, weights_path=None):
+def little_d(input_shape, weights_path=None):
+    nb_filters = 32
+    pool_size = (2, 1)
+    kernel_size = (3, 1)
+    
+    input_layer = Input(shape=input_shape)
+    c1 = Convolution2D(nb_filters, kernel_size[0], kernel_size[1],
+                            border_mode='valid', dim_ordering='tf')(input_layer)
+    a1 = Activation('relu')(c1)
+    c2 = Convolution2D(nb_filters, kernel_size[0], kernel_size[1],
+                            dim_ordering='tf')(a1)
+    a2 = Activation('relu')(c2)
+    pool = MaxPooling2D(pool_size=pool_size,
+                           dim_ordering='tf')(a2)
+    dropout = Dropout(0.25)(pool)
+    f = Flatten()(dropout)
+    #split pathogenic into 2 classes
+    dense_layer = Dense(128,activation='relu')(f)
+    
+    model = Model(input=input_layer, output=dense_layer)
+    model.compile(loss='mse',
+                  optimizer='adam',
+                  metrics=['accuracy'])
+    #print model.layers
+    #print [len(l.get_weights()) if type(l.get_weights())==list else l.get_weights().shape for l in model.layers]
+    return model
+    
+def discriminator_part2(input_shape,weights_path=None):
+    input_layer = Input(shape=input_shape)    
+    dense_layer = Dropout(0.25)(input_layer)
+    damaging_clust = Dense(2)(dense_layer)
+    damaging_clust = Dense(1)(damaging_clust)    
+    benign_clust = Dense(1)(dense_layer)
+    fake_clust = Dense(1)(dense_layer)
+    merge_clusts = merge([benign_clust,damaging_clust,fake_clust],mode='concat')
+    out_layer = Activation('softmax')(merge_clusts)
+    model = Model(input=input_layer, output=out_layer)        
+    model.compile(loss='categorical_crossentropy',
+                  optimizer='adam',
+                  metrics=['accuracy'])
+    #print model.layers
+    #print [len(l.get_weights()) if type(l.get_weights())==list else l.get_weights().shape for l in model.layers]
+    if weights_path:
+        model.load_weights(weights_path)
+    return model
+    
+def discriminator_model(input_shape,weights_path=None):
+    litd = little_d(input_shape)
+    part2 = discriminator_part2((128,))
+    model = Sequential()
+    model.add(litd)
+    model.add(part2)
+    model.compile(loss='categorical_crossentropy',
+                  optimizer='adam',
+                  metrics=['accuracy'])
+    #save weights not working yet    
+    if weights_path:
+        D = discriminator_model_classify(input_shape,weights_path)
+        #print(enumerate(D.layers))
+        for layer,i in enumerate(D.layers):
+            if len(list(layer))>0:
+                if i<10:
+                    model.layers[0].layers[i].set_weights(D.layer.get_weights())
+                else:           
+                    model.layers[1].layers[i+1].set_weights(D.layer.get_weights()) 
+        model.load_weights(weights_path)
+    return model,litd
+
+def discriminator_model_classify(input_shape, weights_path=None):
     nb_filters = 32
     pool_size = (2, 1)
     kernel_size = (3, 1)
@@ -100,7 +168,7 @@ def load_data(fname='../data/HS_input_data.csv'):
                     'FATHMM_converted_rankscore', 'fathmm-MKL_coding_rankscore',
                     '#chr','pos(1-based)', 'ref','alt','category','source','INFO','disease','genename',
                     'hg19_chr','hg19_pos(1-based)',
-                    'prec','s_hat_log'              
+                    'prec','s_hat_log', 'Unnamed: 0'              
 }
     
     df = pd.read_csv(fname)
@@ -117,15 +185,16 @@ def training(argv):
     print("argv[1]: {}".format(argv[1]))
     min_val_loss = sys.float_info.max
     nb_epoch = 30
-    batch_size = 256
+    batch_size = 35000
+    #batch_size = 256
     best_weights_filepath = "GAN_acceptsunlabeled_best_cross_val.hdf5"
 
     kfold = StratifiedKFold(n_splits=10, shuffle=True, random_state=seed)
     cvscores = []
 
     print('Loading training data...')
-    #X, Y = load_data("../data/HS_input_data_unlab_1.csv") 
-    X, Y = load_data("../data/HS_input_data.csv") 
+    X, Y = load_data("../data/HS_input_data_unlab_1_last800000.csv") 
+    #X, Y = load_data("../data/HS_input_data.csv") 
     Y = np.array([-1 for i in range(X.shape[0])]) #make all unlabeled
     input_shape = (X.shape[1], 1, 1)
     # convert into 4D tensor For 2D data (e.g. image), "tf" assumes (rows, cols, channels) 
@@ -160,7 +229,7 @@ def training(argv):
 
     split = 1
     best_acc = 0
-    best_gen_score = 0
+    best_gen_acc = 0
     first = True
     print X_labeled.shape
     print Y_categ_labeled.shape
@@ -169,8 +238,9 @@ def training(argv):
         print("split: %d"%split)    
         g_input_length=50
         G = generator_model((g_input_length,1,1),input_shape,weights_path="Generator_weights_1.hdf5")
-        D = discriminator_model(input_shape)
-#weights_path="discriminator_weights/GAN_acceptsunlabeled_best_cross_val_first.hdf5"
+        #D,litd = discriminator_model(input_shape,weights_path="discriminator_weights/GAN_acceptsunlabeled_best_cross_val_first.hdf5")
+        D,litd = discriminator_model(input_shape)
+
         D_two_class = Sequential()
         D_two_class.add(D)
         def output_real(x):
@@ -183,17 +253,26 @@ def training(argv):
                       optimizer='adam',
                       metrics=['accuracy'])
 
+        D.trainable=False
+        for layer in D.layers:
+            layer.trainable=False
         GD = Sequential()
         GD.add(G)
         D.trainable = False
-        GD.add(D_two_class)
+        GD.add(D_two_class)        
         def neg_binary_cross_entropy(y_true,y_pred):
             return -K.binary_crossentropy(y_true, y_pred)
         GD.compile(loss=neg_binary_cross_entropy,
                       optimizer='adam',
                       metrics=['accuracy'])
         #use with regular D_two_class
-
+        GD_lit = Sequential()
+        GD_lit.add(G)
+        GD_lit.add(litd)
+        GD_lit.compile(loss='mse',
+                    optimizer='adam',
+                    metrics=['accuracy'])
+    
         X_train = X[train]
         for epoch in range(nb_epoch):
             a1,a2,a3,l3 = ([],[],[],[])
@@ -212,11 +291,14 @@ def training(argv):
                     layer.trainable = False
                 #for i in range(3):
                 noise = np.random.normal(0,1,(batch_size,g_input_length,1,1))
-                loss3,acc3 = GD.train_on_batch(noise,[[0]]*batch_size)               
+                loss3,acc3 = GD.train_on_batch(noise,[[0]]*batch_size)                             
+                loss_featmatch = GD_lit.train_on_batch(noise, np.array([np.mean(litd.predict(X_train[shuffled[batch*batch_size:(batch+1)*batch_size]]),axis=0)]*batch_size) )              
+                #loss3,acc3 = GD.train_on_batch(noise, np.array(litd.predict(X_train[shuffled[batch*batch_size:(batch+1)*batch_size]])) )
                 a1.append(acc1)
                 a2.append(acc2)
                 a3.append(acc3)
-                l3.append(loss3)
+                l3.append(loss_featmatch)
+                #print("{}/{}".format(batch,nb_batches))
             print("Epoch: %d SamplesAcc: %f NoiseAcc: %f GeneratorAccLoss: %f %f" % (epoch,np.mean(a1),np.mean(a2),np.mean(a3),np.mean(l3)))
         # evaluate the model
         scores = GD.evaluate(np.random.normal(0,1,(1024,g_input_length,1,1)), [[1]]*1024, verbose=1)
