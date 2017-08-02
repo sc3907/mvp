@@ -15,6 +15,7 @@ def convert2binary(df, col, threshold):
     values[index] = 1
     values[~index] = 0
     return values
+prefix = 'HIS'
 
 s_het = np.load('/Users/bindy/Dropbox/missense_pred/data/gene/s_het.npy').item()
 prec = np.load('/Users/bindy/Dropbox/missense_pred/data/gene/prec.npy').item()
@@ -29,14 +30,15 @@ lofz3 = set(gene for gene, score in lofz.items() if score >= 3)
 geneset = HS_gene #& lofz3
 
 model = Sequential()
-model.add(Dense(30,input_shape = (39,),activation = 'relu'))
-model.add(Dense(25,activation ='relu'))
+#model.add(Dropout(0.5,input_shape=(46,)))
+model.add(Dense(40,input_shape = (46,),activation = 'relu'))
+model.add(Dense(30,activation ='relu'))
 model.add(Dense(20,activation = 'relu'))
 model.add(Dense(1,activation = 'sigmoid'))
 model.load_weights("SAE_weights.h5")
 
 # ASD case
-fpath = "~/Dropbox/missense_pred/data/Ben/ASDonly.case.anno.rare.HS.reformat.GCcorrected.cnn.csv"
+fpath = "~/Dropbox/missense_pred/data/Ben/case_control/case_control/case.anno.rare."+prefix+".reformat.cnn.csv"
 #fpath = '~/Dropbox/missense_pred/data/john/HIS_case.anno.rare.reformat.csv'
 data = data_import.import_data(fpath)
 X_train = data[0]['X_train']
@@ -50,7 +52,7 @@ CASE = df.assign(SAE_prob = y_score)
 
 
 #CHD case
-fpath = "~/Dropbox/missense_pred/data/Ben/chd_yale.anno.rare.HS.reformat.GCcorrected.cnn.csv"
+fpath = "~/Dropbox/missense_pred/data/Ben/case_control/case_control/chd_yale.anno.rare."+prefix+".reformat.cnn.csv"
 data = data_import.import_data(fpath)
 X_train = data[0]['X_train']
 X_test = data[0]['X_test']
@@ -64,7 +66,7 @@ CHD = df.assign(SAE_prob = y_score)
 
 #ssc_yale case
 
-fpath = "~/Dropbox/missense_pred/data/Ben/ssc_yale.anno.rare.HS.reformat.GCcorrected.cnn.csv"
+fpath = "~/Dropbox/missense_pred/data/Ben/case_control/case_control/ssc_yale.anno.rare."+prefix+".reformat.cnn.csv"
 data = data_import.import_data(fpath)
 X_train = data[0]['X_train']
 X_test = data[0]['X_test']
@@ -76,7 +78,7 @@ y_score = model.predict_proba(X_test,batch_size = 20, verbose = 1)
 ssc_yale = df.assign(SAE_prob = y_score)
 
 #DDD df
-fpath = "~/Dropbox/missense_pred/data/Ben/DDD_new_0.2.anno.rare.HS.reformat.GCcorrected.cnn.csv"
+fpath = "~/Dropbox/missense_pred/data/Ben/case_control/case_control/DDD_new_0.2.anno.rare."+prefix+".reformat.cnn.csv"
 data = data_import.import_data(fpath)
 X_train = data[0]['X_train']
 X_test = data[0]['X_test']
@@ -90,7 +92,7 @@ DDD = df.assign(SAE_prob = y_score)
 
 
 #control df
-fpath = "~/Dropbox/missense_pred/data/Ben/control_1911.anno.rare.HS.reformat.GCcorrected.cnn.csv"
+fpath = "~/Dropbox/missense_pred/data/Ben/case_control/case_control/control_1911.anno.rare."+prefix+".reformat.cnn.csv"
 data = data_import.import_data(fpath)
 X_train = data[0]['X_train']
 X_test = data[0]['X_test']
@@ -133,8 +135,10 @@ def display_enrichment(case_info, control_info, case_disease, geneset, sort_key=
               'SAE_0.7':('SAE_prob', 0.7), 'SAE_0.8':('SAE_prob', 0.8),
               'SAE_best_0.56':('SAE_prob', 0.56),'REVEL_0.5':('REVEL',0.5),
               'REVEL_0.6':('REVEL',0.6),'REVEL_0.7':('REVEL',0.7),'REVEL_0.8':('REVEL',0.8),
-              'REVEL_0.9':('REVEL',0.9),'MPC_1':('MPC',1),'MPC_2':('MPC',2)}
-
+              'REVEL_0.9':('REVEL',0.9),'MPC_1':('MPC',1),'MPC_2':('MPC',2),
+              'MVP_0.1':('cnn_prob',0.1),'MVP_0.2':('cnn_prob',0.2),'MVP_0.3':('cnn_prob',0.3),
+              'MVP_0.4':('cnn_prob',0.4),'MVP_0.5':('cnn_prob',0.5),'MVP_0.6':('cnn_prob',0.6),
+              'MVP_0.7':('cnn_prob',0.7),'MVP_0.8':('cnn_prob',0.8),'MVP_0.9':('cnn_prob',0.9)}
 
     infos = []
     for col_name, (col, threshold) in col_dict.items():
@@ -181,12 +185,17 @@ def plot_rate_vs_riskvariants(df, title):
     fig, ax = plt.subplots(figsize = (15,10))
     ax.scatter(x, y, s=100)
     for i, txt in enumerate(methods):
-        if 'SAE' in txt:
+        if 'MVP' in txt:
+            color = 'black'
+        elif 'SAE' in txt:
             color = 'red'
         elif 'all_missense' in txt:
             color = 'blue'
+        elif 'MPC' in txt:
+            color = 'orange'
         else:
-            color = 'black'
+            #color = 'black'
+            continue
         ax.annotate(txt, (x[i],y[i]), fontsize=15, color=color)
     ax.set_xlim(0)
     ax.set_ylim(0)

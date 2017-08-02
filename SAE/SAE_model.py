@@ -1,4 +1,5 @@
-from keras.layers import Dense
+from keras.layers import Dense, Dropout
+from keras import regularizers
 from keras.models import Model, Sequential
 import data_import
 import pickle as pkl
@@ -6,7 +7,7 @@ import json
 
 #data = data_import.import_data("~/Dropbox/missense_pred/data/Ben/inputs/input_data.HIS.csv",test = 1)
 
-data = data_import.import_data("~/Dropbox/missense_pred/data/john/HS_input_data.csv",test = 1)
+data = data_import.import_data("~/Dropbox/missense_pred/data/Ben/input_data.HIS.csv",test = 1)
 
 X_train = data[0]['X_train']
 X_test = data[0]['X_test']
@@ -14,8 +15,8 @@ y_train = data[1]['y_train']
 y_test = data[1]['y_test']
 
 Model1 = Sequential()
-Model1.add(Dense(30,input_shape = (39,),activation = 'relu',name = 'inter1'))
-Model1.add(Dense(39,activation = 'relu'))
+Model1.add(Dense(40,input_shape = (46,),activation = 'relu',name = 'inter1'))
+Model1.add(Dense(46,activation = 'relu'))
 
 Model1.compile(optimizer = 'adam',loss = 'mean_squared_error')
 Model1.fit(X_train,X_train,epochs = 100,batch_size = 1000,validation_data = (X_test,X_test))
@@ -31,8 +32,8 @@ middle1_out_test = middle1.predict(X_test)
 
 
 Model2 = Sequential()
-Model2.add(Dense(25,input_shape = (30,),activation = 'relu',name = 'inter2'))
-Model2.add(Dense(30,activation = 'relu'))
+Model2.add(Dense(30,input_shape = (40,),activation = 'relu',name = 'inter2'))
+Model2.add(Dense(40,activation = 'relu'))
 Model2.compile(optimizer = 'adam',loss = 'mean_squared_error')
 Model2.fit(middle1_out,middle1_out,epochs = 100,batch_size = 1000, validation_data = (middle1_out_test,middle1_out_test))
 
@@ -47,8 +48,8 @@ middle2_out_test = middle2.predict(middle1_out_test)
 
 
 Model3 = Sequential()
-Model3.add(Dense(20,input_shape = (25,),activation = 'relu',name = 'inter3'))
-Model3.add(Dense(25,activation = 'relu'))
+Model3.add(Dense(20,input_shape = (30,),activation = 'relu',name = 'inter3'))
+Model3.add(Dense(30,activation = 'relu'))
 Model3.compile(optimizer = 'adam',loss = 'mean_squared_error')
 Model3.fit(middle2_out,middle2_out,epochs = 100,batch_size = 1000, validation_data = (middle2_out_test,middle2_out_test))
 
@@ -68,9 +69,12 @@ def my_init3(shape,dtype = None):
 
 
 mlp = Sequential()
-mlp.add(Dense(30,input_shape = (39,),activation = 'relu',kernel_initializer = my_init1))
-mlp.add(Dense(25,activation ='relu',kernel_initializer = my_init2))
-mlp.add(Dense(20,activation = 'relu',kernel_initializer = my_init3))
+mlp.add(Dropout(0,input_shape=(46,)))
+mlp.add(Dense(40,activation = 'relu',kernel_initializer = my_init1,activity_regularizer=regularizers.l1(10e-7)))
+mlp.add(Dropout(0.2))
+mlp.add(Dense(30,activation ='relu',kernel_initializer = my_init2,activity_regularizer=regularizers.l1(10e-7)))
+mlp.add(Dropout(0.2))
+mlp.add(Dense(20,activation = 'relu',kernel_initializer = my_init3,activity_regularizer=regularizers.l1(10e-7)))
 mlp.add(Dense(1,activation = 'sigmoid'))
 mlp.compile(loss = 'binary_crossentropy',
 		optimizer = 'adam',

@@ -7,6 +7,7 @@ def import_data(path,test_rate = 0.2,test = 0):
 
     seed = 7
     np.random.seed(seed)
+    '''
     exclude_cols = {'target', 'CADD_phred', 'xEigen-phred', 'Eigen-PC-phred',
                               'Eigen-PC-raw_rankscore', 'MetaSVM_rankscore',
                               'MetaLR_rankscore', 'M-CAP_rankscore', 'DANN_rankscore',
@@ -21,14 +22,17 @@ def import_data(path,test_rate = 0.2,test = 0):
                               'xFATHMM_converted_rankscore', 'xfathmm-MKL_coding_rankscore',
                               'xpreppi_counts', 'xubiquitination','gc_content','BioPlex','Unnamed: 0'
                               ,'gnomad','s_hat','REVEL','RVIS','mis_badness','obs_exp','MPC','cnn_prob'}
-
+    '''
+    features = ['MutationAssessor_score_rankscore', 'VEST3_rankscore', 'Polyphen2_HDIV_rankscore', 'SIFT_converted_rankscore', 'PROVEAN_converted_rankscore', 'FATHMM_converted_rankscore', 'GenoCanyon_score_rankscore', 'LRT_converted_rankscore', 'Eigen-PC-raw_rankscore', 'Eigen-phred', 'Eigen-PC-phred', 'phyloP20way_mammalian_rankscore', 'GERP++_RS_rankscore', 'SiPhy_29way_logOdds_rankscore',
+'phastCons100way_vertebrate_rankscore', 'fathmm-MKL_coding_rankscore','phyloP100way_vertebrate_rankscore', 'phastCons20way_mammalian_rankscore', 'GM12878_fitCons_score_rankscore', 'HUVEC_fitCons_score_rankscore', 'integrated_fitCons_score_rankscore', 'H1-hESC_fitCons_score_rankscore', 'blosum62', 'pam250', 'SUMO_diff', 'SUMO_score', 'SUMO_cutoff', 'phospho_cutoff', 'phospho_score', 'phospho_diff', 'lofz', 'prec', 'pli','s_het_log', 'secondary_E', 'secondary_H', 'complex_CORUM', 'preppi_counts', 'gnomad', 'ASA', 'secondary_C', 'gc_content', 'interface', 'ubiquitination', 'BioPlex', 'obs_exp']
     X = pd.read_csv(path)
 
 
 
     y = X.target
-    X = X.drop("target",1)
-    X = X[X.columns.difference(exclude_cols)]
+    df = X
+    #X = X.drop("target",1)
+    X = X[features]
     print(list(X))
     #print(X['MPC'])
     X = X.values
