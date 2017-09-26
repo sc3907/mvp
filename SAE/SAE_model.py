@@ -4,10 +4,10 @@ from keras.models import Model, Sequential
 import data_import
 import pickle as pkl
 import json
-
+from keras.utils import plot_model
 #data = data_import.import_data("~/Dropbox/missense_pred/data/Ben/inputs/input_data.HIS.csv",test = 1)
 
-data = data_import.import_data("~/Dropbox/missense_pred/data/Ben/input_data.HIS.csv",test = 1)
+data = data_import.import_data("~/Dropbox/missense_pred/data/Ben/input_data.HS.csv",test = 1)
 
 X_train = data[0]['X_train']
 X_test = data[0]['X_test']
@@ -92,7 +92,7 @@ SAE_struct = mlp.to_json()
 with open("SAE_arc.txt",'w') as f:
     json.dump(SAE_struct,f)
 mlp.save_weights('SAE_weights.h5')
-
+plot_model(mlp, to_file='mlp.png')
 #building the autoencoder
 '''
 encoding_dim = 30

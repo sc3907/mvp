@@ -15,7 +15,7 @@ def convert2binary(df, col, threshold):
     values[index] = 1
     values[~index] = 0
     return values
-prefix = 'HIS'
+prefix = 'HS'
 
 s_het = np.load('/Users/bindy/Dropbox/missense_pred/data/gene/s_het.npy').item()
 prec = np.load('/Users/bindy/Dropbox/missense_pred/data/gene/prec.npy').item()
@@ -193,6 +193,8 @@ def plot_rate_vs_riskvariants(df, title):
             color = 'blue'
         elif 'MPC' in txt:
             color = 'orange'
+        elif 'REVEL' in txt:
+            color = 'green'
         else:
             #color = 'black'
             continue

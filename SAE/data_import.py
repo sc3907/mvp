@@ -3,7 +3,7 @@ import numpy as np
 from sklearn.model_selection import train_test_split
 
 
-def import_data(path,test_rate = 0.2,test = 0):
+def import_data(path,test_rate = 0.001,test = 0):
 
     seed = 7
     np.random.seed(seed)
