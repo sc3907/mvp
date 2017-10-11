@@ -50,7 +50,8 @@ def plot_roc(df, y_true, label):
     plt.legend(loc="lower right", fontsize = 'medium')
     plt.show()
 
-fname = "/Users/bindy/Dropbox/missense_pred/data/Ben/metaSVM/metaSVM_addtest2.anno.rare.HIS.reformat.HIS.cnn.csv"
+fname2 = "/Users/bindy/Dropbox/missense_pred/data/Ben/metaSVM/metaSVM_test2.anno.rare.HIS.reformat.cnn.csv"
+fname = '/Users/bindy/Dropbox/missense_pred/data/cancer_hotspots/cancer_sel.HIS.reformat.cnn.csv'
 data = data_import.import_data(fname)
 data2 = data_import.import_data(fname)
 X_train = data[0]['X_train']
